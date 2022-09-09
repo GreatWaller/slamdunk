@@ -7,7 +7,21 @@ cmake_minimum_required (VERSION 3.8)
 
 # 将源代码添加到此项目的可执行文件。
 add_library (slamdunk SHARED
-	"src/SlamDunk.cpp" "include/Common.h" "include/MapPoint.h" "include/Camera.h" "src/Camera.cpp" "src/Frame.cpp" "src/DataSet.cpp" "include/Log.h" "include/Base.h" "src/Log.cpp" "src/MapPoint.cpp")
+	"src/SlamDunk.cpp" 
+	"include/Common.h" 
+	"include/MapPoint.h" 
+	"include/Camera.h" 
+	"src/Camera.cpp" 
+	"src/Frame.cpp" 
+	"src/DataSet.cpp" 
+	"include/Log.h" 
+	"include/Base.h" 
+	"src/Log.cpp" 
+	"src/MapPoint.cpp" 
+	"include/Frontend.h" 
+	"src/Frontend.cpp" 
+	"include/Config.h" 
+	"src/Config.cpp")
 
 target_link_libraries(slamdunk
     ${THIRD_PARTY_LIBS})

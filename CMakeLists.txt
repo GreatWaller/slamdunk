@@ -7,8 +7,8 @@ project ("SlamDunk")
 
 # set(CMAKE_BUILD_TYPE Release)
 
-# set(CMAKE_CXX_FLAGS "-std=c++14 -Wall")
-# set(CMAKE_CXX_FLAGS_RELEASE  "-std=c++14 -O3 -fopenmp -pthread")
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall")
+set(CMAKE_CXX_FLAGS_RELEASE  "-std=c++14 -O3 -fopenmp -pthread")
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
@@ -34,7 +34,7 @@ include_directories(${G2O_INCLUDE_DIRS})
 # Stand-alone build
 # find_package(spdlog REQUIRED )
 include_directories(${PROJECT_SOURCE_DIR}/vendor/spdlog/include)
-LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/vendor/spdlog/build)
+LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/vendor/spdlog/bin)
 
 set(THIRD_PARTY_LIBS
         ${OpenCV_LIBS}

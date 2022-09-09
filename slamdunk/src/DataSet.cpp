@@ -55,10 +55,13 @@ namespace slamdunk {
         image_left =
             cv::imread(fmt::format(fmt, dataset_path_ , 0 , current_image_index_),
                 cv::IMREAD_GRAYSCALE);
+        //LOG_CORE_TRACE("Left frame 's shape is {}:{}:{}", 
+            //image_left.rows, image_left.cols, image_left.channels());
+        //cv::cvtColor(image_left, image_left, cv::COLOR_BGR2GRAY);
+
         image_right =
             //cv::imread((fmt % dataset_path_ % 1 % current_image_index_).str(),
             cv::imread(fmt::format(fmt , dataset_path_ , 1 , current_image_index_),
-
                 cv::IMREAD_GRAYSCALE);
 
         if (image_left.data == nullptr || image_right.data == nullptr) {

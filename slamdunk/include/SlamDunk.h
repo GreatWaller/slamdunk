@@ -3,7 +3,27 @@
 
 #pragma once
 
-#include <iostream>
+#include "Common.h"
+#include "DataSet.h"
+#include "Frontend.h"
 
-// TODO: 在此处引用程序需要的其他标头。
 int test();
+
+namespace slamdunk {
+	class VisualOdometry {
+	public:
+		using Ptr = Ref<VisualOdometry>;
+
+		VisualOdometry(const std::string& configFile);
+		bool Init();
+
+		bool Step();
+		bool Run();
+
+	private:
+		std::string configPath;
+
+		Ref<Dataset> dataset = nullptr;
+		Ref<Frontend> frontend = nullptr;
+	};
+}
