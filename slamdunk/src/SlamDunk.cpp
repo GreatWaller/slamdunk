@@ -30,6 +30,9 @@ namespace slamdunk {
 		frontend = Ref<Frontend>(new Frontend());
 		frontend->SetCameras(dataset->GetCamera(0), dataset->GetCamera(1));
 
+		map = Map::Ptr(new Map);
+		frontend->SetMap(map);
+
 		return true;
 	}
 

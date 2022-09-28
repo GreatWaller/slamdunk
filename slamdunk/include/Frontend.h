@@ -4,7 +4,7 @@
 #include "Frame.h"
 #include "Common.h"
 #include "Camera.h"
-
+#include "Map.h"
 #include <opencv2/features2d.hpp>
 
 namespace slamdunk {
@@ -19,6 +19,8 @@ namespace slamdunk {
 
 		/// 外部接口，添加一个帧并计算其定位结果
 		bool AddFrame(Frame::Ptr frame);
+
+		inline void SetMap(Map::Ptr map) { pMap = map; }
 		void SetCameras(Camera::Ptr leftCamera, Camera::Ptr rightCamera);
 
 	private:
@@ -36,6 +38,8 @@ namespace slamdunk {
 		/// </summary>
 		/// <returns></returns>
 		int EstimateCurrentPose();
+
+		bool BuildInitMap();
 
 	private:
 		Ref<Frame> mLastFrame;
@@ -58,6 +62,9 @@ namespace slamdunk {
 		// camera
 		Camera::Ptr pLeftCamera = nullptr;
 		Camera::Ptr pRightCamera = nullptr;
+
+		// map
+		Map::Ptr pMap = nullptr;
 
 	};
 }

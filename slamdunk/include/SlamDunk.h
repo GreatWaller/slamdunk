@@ -25,5 +25,6 @@ namespace slamdunk {
 
 		Ref<Dataset> dataset = nullptr;
 		Ref<Frontend> frontend = nullptr;
+		Ref<Map> map = nullptr;
 	};
 }

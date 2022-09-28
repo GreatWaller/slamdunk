@@ -1,4 +1,4 @@
-#pragma
+#pragma once
 
 #include "Common.h"
 #include <g2o/solvers/dense/linear_solver_dense.h>
