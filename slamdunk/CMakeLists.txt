@@ -3,8 +3,6 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
-
-
 # 将源代码添加到此项目的可执行文件。
 add_library (slamdunk SHARED
 	"src/SlamDunk.cpp" 
@@ -21,7 +19,7 @@ add_library (slamdunk SHARED
 	"include/Frontend.h" 
 	"src/Frontend.cpp" 
 	"include/Config.h" 
-	"src/Config.cpp")
+	"src/Config.cpp" "include/Optimizer.h" "include/Algorithm.h")
 
 target_link_libraries(slamdunk
     ${THIRD_PARTY_LIBS})

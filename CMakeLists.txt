@@ -6,7 +6,6 @@ project ("SlamDunk")
 
 
 # set(CMAKE_BUILD_TYPE Release)
-
 set(CMAKE_CXX_FLAGS "-std=c++14 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE  "-std=c++14 -O3 -fopenmp -pthread")
 

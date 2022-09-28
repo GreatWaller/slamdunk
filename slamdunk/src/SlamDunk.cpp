@@ -28,6 +28,7 @@ namespace slamdunk {
 		}
 
 		frontend = Ref<Frontend>(new Frontend());
+		frontend->SetCameras(dataset->GetCamera(0), dataset->GetCamera(1));
 
 		return true;
 	}
@@ -42,7 +43,7 @@ namespace slamdunk {
 		return frontend->AddFrame(frame);
 	}
 
-	bool VisualOdometry::Run() {
+	void VisualOdometry::Run() {
 		while (true)
 		{
 			if (Step()==false)

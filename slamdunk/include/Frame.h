@@ -14,7 +14,6 @@ namespace slamdunk {
     public:
         //EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
         typedef std::shared_ptr<Frame> Ptr;
-
         unsigned long id_ = 0;           // id of this frame
         unsigned long keyframe_id_ = 0;  // id of key frame
         bool is_keyframe_ = false;       // ÊÇ·ñÎª¹Ø¼üÖ¡

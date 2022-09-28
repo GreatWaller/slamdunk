@@ -18,7 +18,7 @@ namespace slamdunk {
 		bool Init();
 
 		bool Step();
-		bool Run();
+		void Run();
 
 	private:
 		std::string configPath;

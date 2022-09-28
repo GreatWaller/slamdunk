@@ -3,6 +3,7 @@
 #include "Base.h"
 #include "Frame.h"
 #include "Common.h"
+#include "Camera.h"
 
 #include <opencv2/features2d.hpp>
 
@@ -18,6 +19,7 @@ namespace slamdunk {
 
 		/// 外部接口，添加一个帧并计算其定位结果
 		bool AddFrame(Frame::Ptr frame);
+		void SetCameras(Camera::Ptr leftCamera, Camera::Ptr rightCamera);
 
 	private:
 		
@@ -26,6 +28,9 @@ namespace slamdunk {
 		int TrackLastFrame();
 		bool InsertKeyFrame();
 		int DetectFeatures();
+		int FindFeaturesInRight();
+
+		int TriangulateNewPoints();
 		/// <summary>
 		/// estimate camera pose and return inliers
 		/// </summary>
@@ -33,8 +38,8 @@ namespace slamdunk {
 		int EstimateCurrentPose();
 
 	private:
-		Ref<Frame> m_lastFrame;
-		Ref<Frame> m_currentFrame;
+		Ref<Frame> mLastFrame;
+		Ref<Frame> mCurrentFrame;
 
 		SE3 m_relativeMotion;
 		cv::Ptr<cv::GFTTDetector> m_detector;
@@ -49,5 +54,10 @@ namespace slamdunk {
 		int m_trackingInliers = 0;
 
 		FrontendStatus m_status = FrontendStatus::INITING;
+
+		// camera
+		Camera::Ptr pLeftCamera = nullptr;
+		Camera::Ptr pRightCamera = nullptr;
+
 	};
 }

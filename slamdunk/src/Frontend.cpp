@@ -2,6 +2,8 @@
 #include "Config.h"
 #include "Feature.h"
 #include <opencv2/opencv.hpp>
+#include "Optimizer.h"
+#include "Algorithm.h"
 
 namespace slamdunk {
 
@@ -13,8 +15,13 @@ namespace slamdunk {
 
 	}
 
+	void Frontend::SetCameras(Camera::Ptr leftCamera, Camera::Ptr rightCamera) {
+		pLeftCamera = leftCamera;
+		pRightCamera = rightCamera;
+	}
+
 	bool Frontend::AddFrame(Frame::Ptr frame) {
-		m_currentFrame = frame;
+		mCurrentFrame = frame;
 
 		switch (m_status) {
 		case FrontendStatus::INITING:
@@ -29,14 +36,14 @@ namespace slamdunk {
 			break;
 		}
 
-		m_lastFrame = m_currentFrame;
+		mLastFrame = mCurrentFrame;
 		return true;
 	}
 
 	int Frontend::DetectFeatures() {
-		cv::Mat mask(m_currentFrame->left_img_.size(), CV_8UC1, 255);
+		cv::Mat mask(mCurrentFrame->left_img_.size(), CV_8UC1, 255);
 		// features by tracking last frame. No need to detect again. so mask it.
-		for (auto& feature : m_currentFrame->features_left_) {
+		for (auto& feature : mCurrentFrame->features_left_) {
 			cv::rectangle(mask, feature->keyPoint.pt - cv::Point2f(10, 10),
 				feature->keyPoint.pt + cv::Point2f(10, 10),
 				0, -1
@@ -44,18 +51,105 @@ namespace slamdunk {
 		}
 
 		std::vector<cv::KeyPoint> keypoints;
-		m_detector->detect(m_currentFrame->left_img_, keypoints, mask);
+		m_detector->detect(mCurrentFrame->left_img_, keypoints, mask);
 
 		int countDetected = 0;
 		for (auto& keypoint : keypoints)
 		{
-			m_currentFrame->features_left_.push_back(Feature::Ptr(new
-				Feature(keypoint)));
+			mCurrentFrame->features_left_.push_back(Feature::Ptr(new
+				Feature(mCurrentFrame,keypoint)));
 			countDetected++;
 
 		}
 		LOG_CORE_INFO("Detect {} new features.", countDetected);
 		return countDetected;
+	}
+
+	int Frontend::FindFeaturesInRight() {
+		// use LK Flow to estimate points in the right image.
+		std::vector<cv::Point2f> kps_left, kps_right;
+		for (auto& kp : mCurrentFrame->features_left_)
+		{
+			kps_left.push_back(kp->keyPoint.pt);
+			auto mp = kp->map_point_;
+			if (mp)
+			{
+				auto px = pRightCamera->world2camera(mp->pos_, mCurrentFrame->Pose());
+				kps_right.push_back(cv::Point2f(px[0], px[1]));
+			}
+			else
+			{
+				// use same pixel in left image
+				kps_right.push_back(kp->keyPoint.pt);
+			}
+		}
+
+		std::vector<uchar> status;
+		Mat error;
+		cv::calcOpticalFlowPyrLK(mCurrentFrame->left_img_,
+			mCurrentFrame->right_img_, kps_left, kps_right, status, error,
+			cv::Size(11, 11), 3,
+			cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 0.01),
+			cv::OPTFLOW_USE_INITIAL_FLOW);
+
+		int numGoodPoints = 0;
+		for (size_t i = 0; i < status.size(); i++)
+		{
+			if (status[i])
+			{
+				cv::KeyPoint kp(kps_right[i], 7);
+				Feature::Ptr f(new Feature(mCurrentFrame, kp));
+				f->is_on_left_image_ = false;
+				mCurrentFrame->features_right_.push_back(f);
+				numGoodPoints++;
+			}
+			else
+			{
+				mCurrentFrame->features_right_.push_back(nullptr);
+			}
+		}
+
+		LOG_INFO("Find {} in the right image.", numGoodPoints);
+		return numGoodPoints;
+	}
+
+	int Frontend::TriangulateNewPoints() {
+		std::vector<SE3> poses{
+			pLeftCamera->pose(), pRightCamera->pose()
+		};
+		SE3 current_pose_Twc = mCurrentFrame->Pose().inverse();
+		int cnt_triangulated_pts = 0;
+		for (size_t i = 0; i < mCurrentFrame->features_left_.size(); i++)
+		{
+			if (/*mCurrentFrame->features_left_[i]->map_point_ &&*/
+				mCurrentFrame->features_right_[i]!=nullptr)
+			{
+				std::vector<Vec3> points{
+					pLeftCamera->pixel2camera(
+						Vec2(mCurrentFrame->features_left_[i]->keyPoint.pt.x,
+							mCurrentFrame->features_left_[i]->keyPoint.pt.y)),
+					pRightCamera->pixel2camera(
+						Vec2(mCurrentFrame->features_right_[i]->keyPoint.pt.x,
+							mCurrentFrame->features_right_[i]->keyPoint.pt.y)
+					)
+				};
+
+				Vec3 pWorld = Vec3::Zero();
+				if (triangulation(poses,points,pWorld))
+				{
+					auto new_map_point = MapPoint::CreateNewMappoint();
+					pWorld = current_pose_Twc * pWorld;
+					new_map_point->SetPos(pWorld);
+
+					mCurrentFrame->features_left_[i]->map_point_ = new_map_point;
+					mCurrentFrame->features_right_[i]->map_point_ = new_map_point;
+
+					cnt_triangulated_pts++;
+				}
+			}
+		}
+		LOG_INFO("New Landmarks: {}", cnt_triangulated_pts);
+		return cnt_triangulated_pts;
 	}
 
 	/// <summary>
@@ -65,7 +159,7 @@ namespace slamdunk {
 	int Frontend::TrackLastFrame() {
 
 		std::vector<cv::Point2f> kps_last, kps_current;
-		for (auto& kp : m_lastFrame->features_left_)
+		for (auto& kp : mLastFrame->features_left_)
 		{
 			kps_last.push_back(kp->keyPoint.pt);
 		}
@@ -75,7 +169,7 @@ namespace slamdunk {
 		cv::Mat error;
 
 		cv::calcOpticalFlowPyrLK(
-			m_lastFrame->left_img_, m_currentFrame->left_img_,
+			mLastFrame->left_img_, mCurrentFrame->left_img_,
 			kps_last, kps_current,
 			status, error, cv::Size(11, 11), 3,
 			cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 0.01)
@@ -88,9 +182,12 @@ namespace slamdunk {
 			if (status[i])
 			{
 				cv::KeyPoint kp(kps_current[i], 7.0f);
-				Feature::Ptr feature(new Feature(kp));
+				Feature::Ptr feature(new Feature(mCurrentFrame,kp));
+				// for pose estimate
+				feature->map_point_ = mLastFrame->features_left_[i]->map_point_;
 
-				m_currentFrame->features_left_.push_back(feature);
+				mCurrentFrame->features_left_.push_back(feature);
+
 				numGoodPoints++;
 			}
 		}
@@ -102,7 +199,9 @@ namespace slamdunk {
 	bool Frontend::Init() {
 		int numFeaturesLeft = DetectFeatures();
 
-		if (numFeaturesLeft< m_numFeaturesInit)
+		int numFeaturesRight = FindFeaturesInRight();
+
+		if (numFeaturesRight < m_numFeaturesInit)
 		{
 			return false;
 		}
@@ -111,7 +210,13 @@ namespace slamdunk {
 	}
 
 	bool Frontend::Track() {
+		if (mLastFrame)
+		{
+			mCurrentFrame->SetPose(m_relativeMotion * mLastFrame->Pose());
+		}
+
 		int numTrackLast = TrackLastFrame();
+		EstimateCurrentPose();
 
 		// TODO: calculate inliners
 		int trackingInliers = numTrackLast;
@@ -131,6 +236,8 @@ namespace slamdunk {
 
 		InsertKeyFrame();
 
+		m_relativeMotion = mCurrentFrame->Pose() * mLastFrame->Pose().inverse();
+
 		return true;
 	}
 
@@ -139,18 +246,82 @@ namespace slamdunk {
 		{
 			return false;
 		}
-		m_currentFrame->SetKeyFrame();
+		mCurrentFrame->SetKeyFrame();
 		// TODO: map
 
-		LOG_CORE_INFO("Set frame {} as key frame {}", m_currentFrame->id_,
-			m_currentFrame->keyframe_id_);
+		LOG_CORE_INFO("Set frame {} as key frame {}", mCurrentFrame->id_,
+			mCurrentFrame->keyframe_id_);
 
 		DetectFeatures();
+
+		FindFeaturesInRight();
+		TriangulateNewPoints();
 
 		return true;
 	}
 
 	int Frontend::EstimateCurrentPose() {
+		using BlockSolverType = g2o::BlockSolver_6_3;
+		
+		using LinearSolverType =
+			g2o::LinearSolverDense<BlockSolverType::PoseMatrixType>;
 
+		auto linearSolver = new g2o::LinearSolverDense<BlockSolverType::PoseMatrixType>();
+		auto blockSolver =  new BlockSolverType(
+			std::unique_ptr<LinearSolverType>(linearSolver));
+
+		auto solver = new g2o::OptimizationAlgorithmLevenberg(
+			std::unique_ptr<BlockSolverType>(blockSolver));
+
+		//auto solver = new g2o::OptimizationAlgorithmLevenberg(
+		//	g2o::make_unique<BlockSolverType>(
+		//		g2o::make_unique<LinearSolverType>()));
+
+		g2o::SparseOptimizer optimizer;
+		optimizer.setAlgorithm(solver);
+
+		// vertex
+		VertexPose* vertexPose = new VertexPose();
+		vertexPose->setId(0);
+		vertexPose->setEstimate(mCurrentFrame->Pose());
+		optimizer.addVertex(vertexPose);
+
+
+		//edge
+		Mat33 K = pLeftCamera->K();
+		int index = 1;
+		std::vector<EdgeProjectionPoseOnly*> edges;
+		std::vector<Feature::Ptr> features;
+		for (size_t i = 0; i < mCurrentFrame->features_left_.size(); i++)
+		{
+			auto mp = mCurrentFrame->features_left_[i]->map_point_;
+			if (mp)
+			{
+				features.push_back(mCurrentFrame->features_left_[i]);
+				EdgeProjectionPoseOnly* edge = new EdgeProjectionPoseOnly(mp->pos_, K);
+				edge->setId(index);
+				edge->setVertex(0, vertexPose);
+				edge->setMeasurement(
+					Vec2(mCurrentFrame->features_left_[i]->keyPoint.pt.x,
+						mCurrentFrame->features_left_[i]->keyPoint.pt.y)
+				);
+				edge->setInformation(Eigen::Matrix2d::Identity());
+				edge->setRobustKernel(new g2o::RobustKernelHuber);
+				edges.push_back(edge);
+				optimizer.addEdge(edge);
+				index++;
+			}
+		}
+		// estimate pose
+		// set the initial value to optimize
+		vertexPose->setEstimate(mCurrentFrame->Pose());
+
+		optimizer.initializeOptimization();
+		optimizer.optimize(10);
+
+		mCurrentFrame->SetPose(vertexPose->estimate());
+		LOG_INFO("Current Pose: {}", mCurrentFrame->Pose().matrix());
+
+		return 0;
 	}
 }

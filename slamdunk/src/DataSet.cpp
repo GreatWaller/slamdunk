@@ -51,7 +51,7 @@ namespace slamdunk {
         //std::string fmt=fmt::format()
         cv::Mat image_left, image_right;
         // read images
-        auto filename = fmt::format(fmt, dataset_path_, 0, current_image_index_);
+        //auto filename = fmt::format(fmt, dataset_path_, 0, current_image_index_);
         image_left =
             cv::imread(fmt::format(fmt, dataset_path_ , 0 , current_image_index_),
                 cv::IMREAD_GRAYSCALE);
