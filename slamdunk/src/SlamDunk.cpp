@@ -30,8 +30,14 @@ namespace slamdunk {
 		frontend = Ref<Frontend>(new Frontend());
 		frontend->SetCameras(dataset->GetCamera(0), dataset->GetCamera(1));
 
+		backend = Backend::Ptr(new Backend);
+		backend->SetCameras(dataset->GetCamera(0), dataset->GetCamera(1));
+
 		map = Map::Ptr(new Map);
 		frontend->SetMap(map);
+		backend->SetMap(map);
+
+		frontend->SetBackend(backend);
 
 		return true;
 	}

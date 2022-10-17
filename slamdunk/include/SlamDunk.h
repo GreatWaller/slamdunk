@@ -6,6 +6,7 @@
 #include "Common.h"
 #include "DataSet.h"
 #include "Frontend.h"
+#include "Backend.h"
 
 int test();
 
@@ -25,6 +26,7 @@ namespace slamdunk {
 
 		Ref<Dataset> dataset = nullptr;
 		Ref<Frontend> frontend = nullptr;
+		Ref<Backend> backend = nullptr;
 		Ref<Map> map = nullptr;
 	};
 }

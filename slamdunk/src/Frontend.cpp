@@ -71,7 +71,7 @@ namespace slamdunk {
 		for (auto& kp : mCurrentFrame->features_left_)
 		{
 			kps_left.push_back(kp->keyPoint.pt);
-			auto mp = kp->map_point_;
+			auto mp = kp->map_point_.lock();
 			if (mp)
 			{
 				auto px = pRightCamera->world2camera(mp->pos_, mCurrentFrame->Pose());
@@ -121,7 +121,7 @@ namespace slamdunk {
 		int cnt_triangulated_pts = 0;
 		for (size_t i = 0; i < mCurrentFrame->features_left_.size(); i++)
 		{
-			if (/*mCurrentFrame->features_left_[i]->map_point_ &&*/
+			if (mCurrentFrame->features_left_[i]->map_point_.expired() &&
 				mCurrentFrame->features_right_[i] != nullptr)
 			{
 				std::vector<Vec3> points{
@@ -140,6 +140,10 @@ namespace slamdunk {
 					auto new_map_point = MapPoint::CreateNewMappoint();
 					pWorld = current_pose_Twc * pWorld;
 					new_map_point->SetPos(pWorld);
+
+					// for backend optimization
+					new_map_point->AddObservation(mCurrentFrame->features_left_[i]);
+					new_map_point->AddObservation(mCurrentFrame->features_right_[i]);
 
 					mCurrentFrame->features_left_[i]->map_point_ = new_map_point;
 					mCurrentFrame->features_right_[i]->map_point_ = new_map_point;
@@ -163,7 +167,20 @@ namespace slamdunk {
 		std::vector<cv::Point2f> kps_last, kps_current;
 		for (auto& kp : mLastFrame->features_left_)
 		{
-			kps_last.push_back(kp->keyPoint.pt);
+			if (kp->map_point_.lock())
+			{
+				auto mp = kp->map_point_.lock();
+				auto px = pLeftCamera->world2pixel(mp->pos_, mCurrentFrame->Pose());
+				kps_last.push_back(kp->keyPoint.pt);
+				kps_current.push_back(cv::Point2f(px[0], px[1]));
+			}
+			else
+			{
+				kps_last.push_back(kp->keyPoint.pt);
+				kps_current.push_back(kp->keyPoint.pt);
+
+			}
+
 		}
 
 		// ¹âÁ÷·¨
@@ -255,18 +272,32 @@ namespace slamdunk {
 			return false;
 		}
 		mCurrentFrame->SetKeyFrame();
-		// TODO: map
 		pMap->InsertKeyFrame(mCurrentFrame);
 
 		LOG_CORE_INFO("Set frame {} as key frame {}", mCurrentFrame->id_,
 			mCurrentFrame->keyframe_id_);
+		// TODO: map
+		SetObservationForKeyFrame();
 
 		DetectFeatures();
 
 		FindFeaturesInRight();
 		TriangulateNewPoints();
 
+		pBackend->UpdateMap();
+
 		return true;
+	}
+
+	void Frontend::SetObservationForKeyFrame() {
+		for (auto& feat : mCurrentFrame->features_left_)
+		{
+			auto mp = feat->map_point_.lock();
+			if (mp)
+			{
+				mp->AddObservation(feat);
+			}
+		}
 	}
 
 	int Frontend::EstimateCurrentPose() {
@@ -303,7 +334,7 @@ namespace slamdunk {
 		std::vector<Feature::Ptr> features;
 		for (size_t i = 0; i < mCurrentFrame->features_left_.size(); i++)
 		{
-			auto mp = mCurrentFrame->features_left_[i]->map_point_;
+			auto mp = mCurrentFrame->features_left_[i]->map_point_.lock();
 			if (mp)
 			{
 				features.push_back(mCurrentFrame->features_left_[i]);
@@ -363,6 +394,9 @@ namespace slamdunk {
 				pWorld = current_pose_Twc * pWorld;
 				new_map_point->SetPos(pWorld);
 
+				new_map_point->AddObservation(mCurrentFrame->features_left_[i]);
+				new_map_point->AddObservation(mCurrentFrame->features_right_[i]);
+
 				mCurrentFrame->features_left_[i]->map_point_ = new_map_point;
 				mCurrentFrame->features_right_[i]->map_point_ = new_map_point;
 
@@ -374,7 +408,7 @@ namespace slamdunk {
 		mCurrentFrame->SetKeyFrame();
 		pMap->InsertKeyFrame(mCurrentFrame);
 		// TODO: backend update map
-
+		pBackend->UpdateMap();
 		LOG_INFO("Initial map created with {} map points.", cnt_triangulated_pts);
 		return true;
 	}

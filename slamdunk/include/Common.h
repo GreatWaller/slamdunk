@@ -3,14 +3,20 @@
 #include "Log.h"
 #include <iostream>
 #include <memory>
+
+#include <thread>
 #include <mutex>
+#include <atomic>
+#include <condition_variable>
 #include <map>
 #include <unordered_map>
+#include <list>
 
 // eigen
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+using Mat22 = Eigen::Matrix<double, 2, 2>;
 using Mat33 = Eigen::Matrix<double, 3, 3>;
 using Mat34= Eigen::Matrix<double, 3, 4> ;
 using  Vec3 = Eigen::Matrix<double, 3, 1>;

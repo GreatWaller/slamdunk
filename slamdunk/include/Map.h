@@ -17,22 +17,22 @@ namespace slamdunk {
 		void InsertMapPoint(MapPoint::Ptr mapPoint);
 
 		LandmarksType GetAllMapPoints() {
-			//std::unique_lock<std::mutex> lock(mutex);
+			std::unique_lock<std::mutex> lock(mutex);
 			return mLandmarks;
 		}
 
 		KeyFramesType GetAllKeyFrames() {
-			//std::unique_lock<std::mutex> lock(mutex);
+			std::unique_lock<std::mutex> lock(mutex);
 			return mKeyFrames;
 		}
 
 		LandmarksType GetActiveMapPoints() {
-			//std::unique_lock<std::mutex> lock(mutex);
+			std::unique_lock<std::mutex> lock(mutex);
 			return mActiveLandmarks;
 		}
 
 		KeyFramesType GetActiveKeyFrames() {
-			//std::unique_lock<std::mutex> lock(mutex);
+			std::unique_lock<std::mutex> lock(mutex);
 			return mActiveKeyFrames;
 		}
 	private:
@@ -47,6 +47,6 @@ namespace slamdunk {
 		Frame::Ptr pCurrentFrame = nullptr;
 
 		const int cNumActiveKeyframes = 7;
-		//std::mutex mutex;
+		std::mutex mutex;
 	};
 }

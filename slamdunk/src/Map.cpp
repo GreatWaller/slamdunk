@@ -36,6 +36,7 @@ namespace slamdunk {
 	}
 
 	void Map::RemoveOldKeyframe() {
+		// TODO: calculate the distance and remove too close to or far from current frame.
 
 	}
 }

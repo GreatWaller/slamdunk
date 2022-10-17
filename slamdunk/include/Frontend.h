@@ -6,6 +6,7 @@
 #include "Camera.h"
 #include "Map.h"
 #include <opencv2/features2d.hpp>
+#include "Backend.h"
 
 namespace slamdunk {
 	enum class FrontendStatus
@@ -22,13 +23,14 @@ namespace slamdunk {
 
 		inline void SetMap(Map::Ptr map) { pMap = map; }
 		void SetCameras(Camera::Ptr leftCamera, Camera::Ptr rightCamera);
-
+		void SetBackend(Backend::Ptr backend) { pBackend = backend; }
 	private:
 		
 		bool Track();
 		bool Init();
 		int TrackLastFrame();
 		bool InsertKeyFrame();
+		void SetObservationForKeyFrame();
 		int DetectFeatures();
 		int FindFeaturesInRight();
 
@@ -65,6 +67,9 @@ namespace slamdunk {
 
 		// map
 		Map::Ptr pMap = nullptr;
+
+		// backend
+		Backend::Ptr pBackend = nullptr;
 
 	};
 }

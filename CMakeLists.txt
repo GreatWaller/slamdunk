@@ -29,6 +29,10 @@ include_directories(${Sophus_INCLUDE_DIRS})
 find_package(G2O REQUIRED)
 include_directories(${G2O_INCLUDE_DIRS})
 
+#csparse
+find_package(CSparse REQUIRED)
+include_directories(${CSPARSE_INCLUDE_DIR})
+
 # spdlog
 # Stand-alone build
 # find_package(spdlog REQUIRED )
@@ -42,6 +46,7 @@ set(THIRD_PARTY_LIBS
         g2o_core g2o_stuff g2o_types_sba g2o_solver_csparse g2o_csparse_extension
         ${GLOG_LIBRARIES}
         ${GFLAGS_LIBRARIES}
+        ${CSPARSE_LIBRARY}
         pthread
         spdlog
         )

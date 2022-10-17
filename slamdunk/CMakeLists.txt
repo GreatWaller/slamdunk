@@ -19,7 +19,7 @@ add_library (slamdunk SHARED
 	"include/Frontend.h" 
 	"src/Frontend.cpp" 
 	"include/Config.h" 
-	"src/Config.cpp" "include/Optimizer.h" "include/Algorithm.h" "include/Map.h" "src/Map.cpp")
+	"src/Config.cpp" "include/Optimizer.h" "include/Algorithm.h" "include/Map.h" "src/Map.cpp" "include/Backend.h" "src/Backend.cpp")
 
 target_link_libraries(slamdunk
     ${THIRD_PARTY_LIBS})
